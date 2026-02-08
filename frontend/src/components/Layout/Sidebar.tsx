@@ -10,6 +10,7 @@ const NAV_ITEMS: { view: ViewName; label: string; icon: string }[] = [
   { view: 'search', label: 'QUERY DATABASE', icon: '⌕' },
   { view: 'network', label: 'NETWORK ANALYSIS', icon: '◉' },
   { view: 'entities', label: 'SUBJECT FILES', icon: '⊟' },
+  { view: 'person', label: 'PERSON DOSSIER', icon: '⊡' },
   { view: 'timeline', label: 'TEMPORAL ANALYSIS', icon: '▤' },
   { view: 'stats', label: 'CLASSIFIED BRIEFING', icon: '▦' },
 ]

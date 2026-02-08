@@ -1,17 +1,19 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { getGraph, getEgoGraph } from '../../api'
+import { getEgoGraph, getRelationshipGraph } from '../../api'
 import type { GraphData } from '../../types'
 import { useForceGraph } from './useForceGraph'
 import { Spinner } from '../ui/Spinner'
 
 interface Props {
   onViewEntity: (email: string) => void
+  onViewPerson?: (email: string) => void
   egoEmail?: string | null
 }
 
-export function NetworkView({ onViewEntity, egoEmail }: Props) {
+export function NetworkView({ onViewEntity, onViewPerson, egoEmail }: Props) {
   const [minWeight, setMinWeight] = useState(10)
   const [maxNodes, setMaxNodes] = useState(100)
+  const [relType, setRelType] = useState('')
   const [data, setData] = useState<GraphData | null>(null)
   const [loading, setLoading] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -22,15 +24,15 @@ export function NetworkView({ onViewEntity, egoEmail }: Props) {
     try {
       const result = egoEmail
         ? await getEgoGraph(egoEmail)
-        : await getGraph(minWeight, maxNodes)
+        : await getRelationshipGraph(minWeight, maxNodes, relType)
       setData(result)
     } catch { /* */ }
     setLoading(false)
-  }, [minWeight, maxNodes, egoEmail])
+  }, [minWeight, maxNodes, relType, egoEmail])
 
   useEffect(() => { loadGraph() }, [loadGraph])
 
-  useForceGraph(containerRef, svgRef, data, { onNodeClick: onViewEntity })
+  useForceGraph(containerRef, svgRef, data, { onNodeClick: onViewPerson || onViewEntity })
 
   useEffect(() => {
     const handleResize = () => { if (data) loadGraph() }
@@ -141,6 +143,25 @@ export function NetworkView({ onViewEntity, egoEmail }: Props) {
         >
           RELOAD SCAN
         </button>
+
+        <div style={{ marginTop: '10px' }}>
+          <label style={{
+            display: 'block', fontFamily: 'var(--font-mono)', fontSize: '10px',
+            color: 'var(--bone-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px'
+          }}>
+            RELATIONSHIP TYPE
+          </label>
+          <select value={relType} onChange={e => setRelType(e.target.value)} style={{
+            width: '100%', fontFamily: 'var(--font-mono)', fontSize: '11px',
+            background: 'var(--bg-paper)', color: 'var(--bone)', border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)', padding: '4px 8px'
+          }}>
+            <option value="">ALL TYPES</option>
+            <option value="direct_email">DIRECT EMAIL</option>
+            <option value="co-participant">CO-PARTICIPANT</option>
+            <option value="forwarded">FORWARDED</option>
+          </select>
+        </div>
       </div>
 
       <div

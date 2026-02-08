@@ -40,8 +40,20 @@ export function useForceGraph(
     )
 
     const link = g.append('g').selectAll('line').data(data.links).join('line')
-      .attr('stroke', 'rgba(200,184,154,0.12)')
+      .attr('stroke', (d: GraphLink) => {
+        const t = d.type || ''
+        if (t === 'direct_email') return 'rgba(139,0,0,0.4)'
+        if (t === 'co-participant') return 'rgba(196,160,0,0.3)'
+        if (t === 'forwarded') return 'rgba(138,126,106,0.25)'
+        return 'rgba(200,184,154,0.15)'
+      })
       .attr('stroke-width', (d: GraphLink) => linkScale(d.weight))
+      .attr('stroke-dasharray', (d: GraphLink) => {
+        const t = d.type || ''
+        if (t === 'co-participant') return '4,3'
+        if (t === 'forwarded') return '2,2'
+        return 'none'
+      })
 
     const node = g.append('g').selectAll<SVGGElement, GraphNode>('g').data(data.nodes).join('g')
       .attr('cursor', 'pointer')
@@ -65,7 +77,16 @@ export function useForceGraph(
 
     node.append('circle')
       .attr('r', d => nodeScale(d.count))
-      .attr('fill', d => d.is_epstein ? '#8b0000' : '#6a6050')
+      .attr('fill', (d: GraphNode) => {
+        if (d.is_epstein) return '#8b0000'
+        const role = d.role || ''
+        if (role === 'legal') return '#4a6a8a'
+        if (role === 'political') return '#8a7a20'
+        if (role === 'financial') return '#3a6a4a'
+        if (role === 'social') return '#6a4a6a'
+        if (role === 'inner_circle') return '#6b3a2a'
+        return '#6a6050'
+      })
       .attr('stroke', d => d.is_epstein ? '#cc1100' : '#8a7e6a')
       .attr('stroke-width', d => d.is_epstein ? 2 : 1)
       .attr('opacity', 0.85)
@@ -94,6 +115,7 @@ export function useForceGraph(
         <div style="font-family:var(--font-mono);font-weight:600;font-size:12px;color:var(--bone)">${d.name || 'Unknown'}</div>
         <div style="font-family:var(--font-mono);font-size:10px;color:var(--bone-muted)">${d.email}</div>
         <div style="font-family:var(--font-mono);font-size:10px;color:var(--evidence-yellow);margin-top:4px">${d.count} messages${d.is_epstein ? ' // EPSTEIN ACCOUNT' : ''}</div>
+        ${d.role ? '<div style="font-family:var(--font-mono);font-size:9px;color:var(--bone-dim);margin-top:2px">ROLE: ' + d.role.toUpperCase() + '</div>' : ''}
       `
     }).on('mousemove', (e) => {
       if (!tooltip) return

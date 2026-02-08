@@ -101,6 +101,8 @@ export interface GraphNode {
   email: string
   count: number
   is_epstein: number
+  connections?: number
+  role?: string
   x?: number
   y?: number
   fx?: number | null
@@ -111,11 +113,91 @@ export interface GraphLink {
   source: string | GraphNode
   target: string | GraphNode
   weight: number
+  type?: string
 }
 
 export interface GraphData {
   nodes: GraphNode[]
   links: GraphLink[]
+}
+
+export interface PersonProfile {
+  email: string
+  canonical_name: string
+  all_names: string[]
+  all_emails: string[]
+  role: string
+  first_active: string
+  last_active: string
+  total_messages: number
+  total_threads: number
+  total_connections: number
+  is_epstein: number
+}
+
+export interface PersonConnection {
+  email: string
+  name: string
+  types: Record<string, number>
+  total_weight: number
+  first_seen: string
+  last_seen: string
+}
+
+export interface PersonActivityEntry {
+  month: string
+  cnt: number
+}
+
+export interface MentionSummary {
+  mention_type: string
+  cnt: number
+}
+
+export interface PersonResponse {
+  profile: PersonProfile
+  connections: PersonConnection[]
+  recent_sent: RecentMessage[]
+  recent_received: (RecentMessage & { sender_name?: string })[]
+  activity_timeline: PersonActivityEntry[]
+  mention_summary: MentionSummary[]
+}
+
+export interface RelationshipDetail {
+  relationship_type: string
+  weight: number
+  first_seen: string
+  last_seen: string
+  sample_doc_id: string
+  context: string | null
+}
+
+export interface TopRelationship {
+  entity_a: string
+  entity_b: string
+  relationship_type: string
+  weight: number
+  first_seen: string
+  last_seen: string
+  sample_doc_id: string
+  name_a: string
+  name_b: string
+  role_a: string
+  role_b: string
+}
+
+export interface RelTypeCount {
+  relationship_type: string
+  cnt: number
+  total_weight: number
+}
+
+export interface TopConnected {
+  email: string
+  canonical_name: string
+  total_connections: number
+  total_messages: number
+  role: string
 }
 
 export interface TimelineEntry {
@@ -143,10 +225,14 @@ export interface Stats {
   messages: number
   entities: number
   edges: number
+  relationships: number
+  profiles: number
   min_date: string | null
   max_date: string | null
   top_senders: TopSender[]
   top_domains: TopDomain[]
+  relationships_by_type: RelTypeCount[]
+  top_connected: TopConnected[]
 }
 
-export type ViewName = 'search' | 'network' | 'entities' | 'timeline' | 'stats'
+export type ViewName = 'search' | 'network' | 'entities' | 'person' | 'timeline' | 'stats'

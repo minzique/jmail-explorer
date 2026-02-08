@@ -10,9 +10,10 @@ interface Props {
   onOpenThread: (docId: string) => void
   onViewNetwork: (email: string) => void
   onNavigate: (email: string) => void
+  onViewPerson?: (email: string) => void
 }
 
-export function EntityDetail({ email, onOpenThread, onViewNetwork, onNavigate }: Props) {
+export function EntityDetail({ email, onOpenThread, onViewNetwork, onNavigate, onViewPerson }: Props) {
   const [data, setData] = useState<EntityDetailResponse | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -62,23 +63,43 @@ export function EntityDetail({ email, onOpenThread, onViewNetwork, onNavigate }:
         {e.email} · {e.message_count} messages
       </div>
 
-      <button
-        onClick={() => onViewNetwork(e.email)}
-        style={{
-          fontFamily: 'var(--font-typewriter)',
-          fontSize: '10px',
-          color: 'var(--evidence-yellow)',
-          letterSpacing: '0.06em',
-          padding: '4px 12px',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)',
-          background: 'var(--bg-surface)',
-          cursor: 'pointer',
-          marginBottom: '20px',
-        }}
-      >
-        VIEW EGO NETWORK →
-      </button>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <button
+          onClick={() => onViewNetwork(e.email)}
+          style={{
+            fontFamily: 'var(--font-typewriter)',
+            fontSize: '10px',
+            color: 'var(--evidence-yellow)',
+            letterSpacing: '0.06em',
+            padding: '4px 12px',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            background: 'var(--bg-surface)',
+            cursor: 'pointer',
+          }}
+        >
+          VIEW EGO NETWORK →
+        </button>
+        {onViewPerson && (
+          <button
+            onClick={() => onViewPerson(email)}
+            style={{
+              fontFamily: 'var(--font-typewriter)',
+              fontSize: '10px',
+              color: 'var(--stamp-red)',
+              letterSpacing: '0.06em',
+              padding: '4px 12px',
+              border: '1px solid var(--blood)',
+              borderRadius: 'var(--radius)',
+              background: 'var(--blood-faint)',
+              cursor: 'pointer',
+              marginLeft: '8px',
+            }}
+          >
+            VIEW FULL DOSSIER →
+          </button>
+        )}
+      </div>
 
       {data.connections.length > 0 && (
         <div style={{ marginTop: '20px' }}>

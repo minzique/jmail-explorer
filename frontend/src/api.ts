@@ -6,6 +6,8 @@ import type {
   GraphData,
   TimelineResponse,
   Stats,
+  PersonResponse,
+  TopRelationship,
 } from './types'
 
 const BASE = ''
@@ -54,4 +56,22 @@ export function getTimeline(): Promise<TimelineResponse> {
 
 export function getStats(): Promise<Stats> {
   return fetchJson('/api/stats')
+}
+
+export function getPerson(email: string): Promise<PersonResponse> {
+  return fetchJson(`/api/person/${encodeURIComponent(email)}`)
+}
+
+export function getRelationshipGraph(
+  minWeight = 3, limit = 150, relType = ''
+): Promise<GraphData> {
+  const params = `min_weight=${minWeight}&limit=${limit}&rel_type=${encodeURIComponent(relType)}`
+  return fetchJson(`/api/graph/relationships?${params}`)
+}
+
+export function getTopRelationships(
+  limit = 50, relType = '', excludeEpstein = false
+): Promise<{ relationships: TopRelationship[] }> {
+  const params = `limit=${limit}&rel_type=${encodeURIComponent(relType)}&exclude_epstein=${excludeEpstein}`
+  return fetchJson(`/api/relationships/top?${params}`)
 }

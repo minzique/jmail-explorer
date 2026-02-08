@@ -4,7 +4,11 @@ import type { Stats } from '../../types'
 import { Spinner } from '../ui/Spinner'
 import { fmtDate } from '../../utils'
 
-export function StatsView() {
+interface Props {
+  onViewPerson?: (email: string) => void
+}
+
+export function StatsView({ onViewPerson }: Props) {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -22,6 +26,8 @@ export function StatsView() {
     { label: 'MESSAGES', value: stats.messages.toLocaleString() },
     { label: 'ENTITIES', value: stats.entities.toLocaleString() },
     { label: 'CONNECTIONS', value: stats.edges.toLocaleString() },
+    { label: 'RELATIONSHIPS', value: stats.relationships?.toLocaleString() || '0' },
+    { label: 'PROFILES', value: stats.profiles?.toLocaleString() || '0' },
     { label: 'EARLIEST', value: fmtDate(stats.min_date), small: true },
     { label: 'LATEST', value: fmtDate(stats.max_date), small: true },
   ]
@@ -152,7 +158,7 @@ export function StatsView() {
         </table>
 
         <div className="section-divider">TOP 10 DOMAINS</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '28px' }}>
           <thead>
             <tr>
               {['#', 'DOMAIN', 'COUNT', ''].map(h => (
@@ -195,6 +201,96 @@ export function StatsView() {
             ))}
           </tbody>
         </table>
+
+        {stats.relationships_by_type && stats.relationships_by_type.length > 0 && (
+          <>
+            <div className="section-divider">RELATIONSHIPS BY TYPE</div>
+            <div style={{ marginBottom: '28px' }}>
+              {stats.relationships_by_type.map(r => {
+                const max = Math.max(...stats.relationships_by_type!.map(x => x.cnt))
+                const color = r.relationship_type === 'direct_email' ? 'var(--blood)' :
+                              r.relationship_type === 'co-participant' ? 'var(--evidence-yellow)' :
+                              'var(--bone-dim)'
+                return (
+                  <div key={r.relationship_type} style={{ marginBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px', fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--bone-muted)' }}>
+                      <span style={{ textTransform: 'uppercase' }}>{r.relationship_type.replace('_', ' ')}</span>
+                      <span>{r.cnt.toLocaleString()}</span>
+                    </div>
+                    <div style={{ background: 'var(--bg-surface)', height: '6px', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ width: `${(r.cnt / max * 100).toFixed(1)}%`, background: color, height: '100%' }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        {stats.top_connected && stats.top_connected.length > 0 && (
+          <>
+            <div className="section-divider">TOP CONNECTED ENTITIES</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {['#', 'NAME', 'EMAIL', 'CONNECTIONS', 'ROLE'].map(h => (
+                    <th
+                      key={h}
+                      style={{
+                        textAlign: 'left',
+                        padding: '8px 12px',
+                        fontFamily: 'var(--font-typewriter)',
+                        fontSize: '9px',
+                        color: 'var(--bone-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.06em',
+                        borderBottom: '1px solid var(--border)',
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {stats.top_connected.map((r, i) => {
+                  const roleColor = r.role === 'inner_circle' ? '#8b0000' :
+                                    r.role === 'legal' ? '#4a6a8a' :
+                                    r.role === 'political' ? '#8a7a20' :
+                                    r.role === 'financial' ? '#3a6a4a' :
+                                    r.role === 'social' ? '#6a4a6a' :
+                                    r.role === 'principal' ? '#cc1100' :
+                                    'var(--bone-muted)'
+                  return (
+                    <tr
+                      key={r.email}
+                      onClick={() => onViewPerson?.(r.email)}
+                      style={{ cursor: 'pointer', transition: 'background 0.1s' }}
+                      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg-manila)'}
+                      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+                    >
+                      <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--bone-muted)', borderBottom: '1px solid var(--border-subtle)' }}>
+                        {String(i + 1).padStart(2, '0')}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
+                        {r.canonical_name || '\u2014'}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--bone-dim)', borderBottom: '1px solid var(--border-subtle)' }}>
+                        {r.email}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '12px', borderBottom: '1px solid var(--border-subtle)' }}>
+                        {r.total_connections}
+                      </td>
+                      <td style={{ padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '10px', color: roleColor, textTransform: 'uppercase', borderBottom: '1px solid var(--border-subtle)' }}>
+                        {r.role}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </>
+        )}
       </div>
     </div>
   )

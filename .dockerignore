@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+*.jsonl
+frontend/node_modules/
+frontend/dist/
+.git/
+*.md
+!frontend/README.md
+analyze_cooccurrence.py

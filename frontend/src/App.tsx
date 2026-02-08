@@ -7,16 +7,23 @@ import { NetworkView } from './components/Network/NetworkView'
 import { EntitiesView } from './components/Entities/EntitiesView'
 import { TimelineView } from './components/Timeline/TimelineView'
 import { StatsView } from './components/Stats/StatsView'
+import { PersonView } from './components/Person/PersonView'
 import { ThreadOverlay } from './components/Thread/ThreadOverlay'
 
 export default function App() {
   const [view, setView] = useState<ViewName>('search')
   const [threadId, setThreadId] = useState<string | null>(null)
   const [egoEmail, setEgoEmail] = useState<string | null>(null)
+  const [personEmail, setPersonEmail] = useState<string | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const openThread = useCallback((docId: string) => setThreadId(docId), [])
   const closeThread = useCallback(() => setThreadId(null), [])
+
+  const handleViewPerson = useCallback((email: string) => {
+    setPersonEmail(email)
+    setView('person')
+  }, [])
 
   const handleViewEntity = useCallback((_email: string) => {
     setView('entities')
@@ -56,6 +63,7 @@ export default function App() {
 
   const handleViewChange = useCallback((v: ViewName) => {
     if (v !== 'network') setEgoEmail(null)
+    if (v !== 'person') setPersonEmail(null)
     setView(v)
   }, [])
 
@@ -67,15 +75,18 @@ export default function App() {
           <SearchView onOpenThread={openThread} searchInputRef={searchInputRef} />
         )}
         {view === 'network' && (
-          <NetworkView onViewEntity={handleViewEntity} egoEmail={egoEmail} />
+          <NetworkView onViewEntity={handleViewEntity} onViewPerson={handleViewPerson} egoEmail={egoEmail} />
         )}
         {view === 'entities' && (
-          <EntitiesView onOpenThread={openThread} onViewNetwork={handleViewNetwork} />
+          <EntitiesView onOpenThread={openThread} onViewNetwork={handleViewNetwork} onViewPerson={handleViewPerson} />
+        )}
+        {view === 'person' && (
+          <PersonView email={personEmail} onOpenThread={openThread} onViewNetwork={handleViewNetwork} onViewPerson={handleViewPerson} />
         )}
         {view === 'timeline' && (
           <TimelineView onSearchMonth={handleSearchMonth} />
         )}
-        {view === 'stats' && <StatsView />}
+        {view === 'stats' && <StatsView onViewPerson={handleViewPerson} />}
       </main>
 
       {threadId && <ThreadOverlay docId={threadId} onClose={closeThread} />}

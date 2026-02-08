@@ -11,11 +11,12 @@ import { EmptyState } from '../ui/EmptyState'
 interface Props {
   onOpenThread: (docId: string) => void
   onViewNetwork: (email: string) => void
+  onViewPerson?: (email: string) => void
 }
 
 type SortField = 'name' | 'email' | 'message_count'
 
-export function EntitiesView({ onOpenThread, onViewNetwork }: Props) {
+export function EntitiesView({ onOpenThread, onViewNetwork, onViewPerson }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [page, setPage] = useState(1)
   const [sort, setSort] = useState<SortField>('message_count')
@@ -177,6 +178,7 @@ export function EntitiesView({ onOpenThread, onViewNetwork }: Props) {
           onOpenThread={onOpenThread}
           onViewNetwork={onViewNetwork}
           onNavigate={setSelectedEmail}
+          onViewPerson={onViewPerson}
         />
       )}
     </div>
