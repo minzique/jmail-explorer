@@ -1,0 +1,190 @@
+/* ═══════════════════════════════════════════════════════════════
+   EXHIBIT A — Atmospheric Effects
+   Film grain, scanlines, vignette, glitch, flicker
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Film Grain Overlay ── */
+.grain-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+}
+
+.grain-overlay svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Scanlines ── */
+.scanlines::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.04) 2px,
+    rgba(0, 0, 0, 0.04) 3px
+  );
+}
+
+/* ── Vignette ── */
+.vignette::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+}
+
+/* ── Flicker Animation ── */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.97; }
+  75% { opacity: 0.99; }
+}
+
+.flicker {
+  animation: flicker 3s infinite;
+}
+
+/* ── Glitch Effect (on hover) ── */
+@keyframes glitch-1 {
+  0% { clip-path: inset(0 0 100% 0); }
+  10% { clip-path: inset(40% 0 20% 0); transform: translate(-2px, 0); }
+  20% { clip-path: inset(80% 0 0% 0); transform: translate(2px, 0); }
+  30% { clip-path: inset(10% 0 60% 0); transform: translate(-1px, 0); }
+  40% { clip-path: inset(0 0 100% 0); transform: translate(0); }
+  100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
+}
+
+.glitch-hover {
+  position: relative;
+}
+
+.glitch-hover::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  color: var(--blood-bright);
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.glitch-hover:hover::after {
+  animation: glitch-1 0.3s linear;
+  opacity: 0.6;
+}
+
+/* ── Page Entry Animation ── */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-enter 0.25s ease-out;
+}
+
+/* ── Stagger children ── */
+.stagger-children > * {
+  animation: page-enter 0.2s ease-out both;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.02s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.04s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.06s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.08s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.10s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.12s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.14s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.16s; }
+.stagger-children > *:nth-child(9) { animation-delay: 0.18s; }
+.stagger-children > *:nth-child(10) { animation-delay: 0.20s; }
+
+/* ── Pulse Glow (for Epstein nodes) ── */
+@keyframes pulse-glow {
+  0%, 100% { filter: drop-shadow(0 0 3px var(--blood)); }
+  50% { filter: drop-shadow(0 0 8px var(--blood-bright)); }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ── Surveillance Grid ── */
+.surveillance-grid {
+  background-image:
+    linear-gradient(rgba(26, 58, 26, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 58, 26, 0.08) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ── Typewriter cursor ── */
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.typewriter-cursor::after {
+  content: '|';
+  color: var(--evidence-yellow);
+  animation: blink-cursor 1s step-end infinite;
+  margin-left: 2px;
+}
+
+/* ── Redaction bar ── */
+.redacted-bar {
+  display: inline-block;
+  background: var(--redact-black);
+  color: transparent;
+  padding: 0 4px;
+  border-radius: 1px;
+  user-select: none;
+  transition: background 0.3s;
+}
+
+.redacted-bar:hover {
+  background: var(--bg-elevated);
+  color: var(--bone-muted);
+}
+
+/* ── Confidential Watermark ── */
+.watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.watermark::after {
+  content: 'CONFIDENTIAL';
+  font-family: var(--font-typewriter);
+  font-size: 120px;
+  color: rgba(139, 0, 0, 0.03);
+  transform: rotate(-15deg);
+  white-space: nowrap;
+  letter-spacing: 20px;
+}

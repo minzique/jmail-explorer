@@ -1,0 +1,130 @@
+/* ═══════════════════════════════════════════════════════════════
+   EXHIBIT A — Global Styles
+   A leaked classified archive viewer.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Backgrounds */
+  --bg-void: #050505;
+  --bg-surface: #0a0a0a;
+  --bg-paper: #0f0e0c;
+  --bg-manila: #1a1610;
+  --bg-elevated: #1c1a15;
+
+  /* Borders */
+  --border: #2a2520;
+  --border-subtle: #1a1815;
+
+  /* Accent: Blood */
+  --blood: #8b0000;
+  --blood-bright: #cc1100;
+  --blood-glow: rgba(139, 0, 0, 0.15);
+  --blood-faint: rgba(139, 0, 0, 0.06);
+
+  /* Accent: Evidence */
+  --evidence-yellow: #c4a000;
+  --evidence-yellow-dim: #8a7a20;
+  --highlight: rgba(196, 160, 0, 0.2);
+
+  /* Text: Bone (aged paper) */
+  --bone: #c8b89a;
+  --bone-dim: #8a7e6a;
+  --bone-muted: #5a5347;
+
+  /* Special */
+  --redact-black: #111;
+  --stamp-red: #991111;
+  --grid-green: #1a3a1a;
+
+  /* Typography */
+  --font-typewriter: 'Special Elite', cursive;
+  --font-mono: 'IBM Plex Mono', 'Menlo', monospace;
+  --font-serif: 'Crimson Pro', 'Georgia', serif;
+
+  /* Spacing */
+  --radius: 2px;
+  --radius-sm: 1px;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg-void);
+  color: var(--bone);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--evidence-yellow);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input {
+  font-family: var(--font-mono);
+  color: var(--bone);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  font-size: 13px;
+}
+
+input:focus {
+  border-color: var(--evidence-yellow);
+  box-shadow: 0 0 0 1px rgba(196, 160, 0, 0.15);
+}
+
+input::placeholder {
+  color: var(--bone-muted);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 1px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bone-muted);
+}
+
+/* Selection */
+::selection {
+  background: rgba(139, 0, 0, 0.3);
+  color: var(--bone);
+}

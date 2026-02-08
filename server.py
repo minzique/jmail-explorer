@@ -7,6 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jmail.db")
+FRONTEND_DIST = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend", "dist")
 STATIC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 
 app = FastAPI(title="JMail Explorer")
@@ -37,6 +38,9 @@ def rows_to_dicts(rows):
 
 @app.get("/")
 async def root():
+    dist_index = os.path.join(FRONTEND_DIST, "index.html")
+    if os.path.exists(dist_index):
+        return FileResponse(dist_index)
     return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
 
@@ -270,4 +274,6 @@ async def get_stats():
     }
 
 
+if os.path.exists(os.path.join(FRONTEND_DIST, "assets")):
+    app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

@@ -1,0 +1,78 @@
+/* ═══════════════════════════════════════════════════════════════
+   EXHIBIT A — Typography
+   Typewriter stamps, evidence labels, classified marks
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Typewriter Heading ── */
+.type-header {
+  font-family: var(--font-typewriter);
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+
+/* ── Stamped Label (like a physical stamp) ── */
+.stamp {
+  font-family: var(--font-typewriter);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--stamp-red);
+  opacity: 0.9;
+}
+
+.stamp-sm {
+  font-size: 10px;
+}
+
+.stamp-lg {
+  font-size: 18px;
+}
+
+/* ── Mono Data ── */
+.mono {
+  font-family: var(--font-mono);
+}
+
+.mono-caps {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10px;
+}
+
+/* ── Evidence Yellow Label ── */
+.label-yellow {
+  color: var(--evidence-yellow);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Section Divider ── */
+.section-divider {
+  font-family: var(--font-typewriter);
+  font-size: 13px;
+  color: var(--bone-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+/* ── Serif body text (for email content) ── */
+.serif-body {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--bone);
+}
+
+/* ── Evidence Tag Text ── */
+.evidence-text {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--bone-muted);
+}
