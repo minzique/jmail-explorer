@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JMail Explorer — Epstein Email Archive</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0a0b10;--bg-surface:#12131a;--bg-card:#181a24;--bg-card-hover:#1e2030;
+--bg-elevated:#222438;--border:#2a2d3e;--border-subtle:#1e2030;
+--text:#e4e4e7;--text-dim:#8b8da0;--text-muted:#5c5e72;
+--accent:#818cf8;--accent-dim:#6366f1;--accent-glow:rgba(99,102,241,.15);
+--red:#f87171;--red-dim:#dc2626;--green:#4ade80;--amber:#fbbf24;
+--cyan:#22d3ee;
+--font-body:'DM Sans',system-ui,sans-serif;--font-mono:'JetBrains Mono',monospace;
+--radius:10px;--radius-sm:6px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;overflow:hidden}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit;color:var(--text);background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;outline:none;transition:border-color .2s}
+input:focus{border-color:var(--accent)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+
+#app{display:flex;height:100vh;width:100vw}
+
+.sidebar{
+width:240px;min-width:240px;background:var(--bg-surface);border-right:1px solid var(--border);
+display:flex;flex-direction:column;z-index:10;
+}
+.sidebar-header{
+padding:20px 20px 16px;border-bottom:1px solid var(--border);
+}
+.sidebar-header h1{
+font-size:15px;font-weight:700;letter-spacing:-.02em;
+background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.sidebar-header p{font-size:11px;color:var(--text-muted);margin-top:2px;font-family:var(--font-mono)}
+.sidebar-nav{flex:1;padding:8px;overflow-y:auto}
+.nav-item{
+display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);
+font-size:13px;font-weight:500;color:var(--text-dim);transition:all .15s;cursor:pointer;
+}
+.nav-item:hover{background:var(--bg-card);color:var(--text)}
+.nav-item.active{background:var(--accent-glow);color:var(--accent)}
+.nav-item svg{width:18px;height:18px;flex-shrink:0}
+.nav-badge{
+margin-left:auto;font-size:10px;font-family:var(--font-mono);
+background:var(--bg-elevated);padding:2px 6px;border-radius:10px;color:var(--text-muted);
+}
+.sidebar-footer{padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-muted)}
+.kbd{
+font-family:var(--font-mono);font-size:10px;background:var(--bg-elevated);
+padding:2px 5px;border-radius:3px;border:1px solid var(--border);
+}
+
+.main{flex:1;overflow-y:auto;position:relative}
+.view{display:none;padding:24px 32px;min-height:100%;animation:fadeIn .2s ease}
+.view.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.page-title{font-size:22px;font-weight:700;margin-bottom:20px;letter-spacing:-.02em}
+.page-subtitle{font-size:13px;color:var(--text-muted);margin-top:4px}
+
+.search-box{position:relative;margin-bottom:20px}
+.search-box input{width:100%;padding:12px 16px 12px 42px;font-size:14px;border-radius:var(--radius);background:var(--bg-card);border-color:var(--border)}
+.search-box svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--text-muted)}
+.search-meta{font-size:12px;color:var(--text-muted);margin-bottom:12px;font-family:var(--font-mono)}
+
+.result-card{
+background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius);
+padding:16px 20px;margin-bottom:8px;cursor:pointer;transition:all .15s;
+}
+.result-card:hover{background:var(--bg-card-hover);border-color:var(--border);transform:translateX(2px)}
+.result-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.result-avatar{
+width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+font-size:12px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.result-sender{font-weight:600;font-size:13px}
+.result-date{margin-left:auto;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);flex-shrink:0}
+.result-subject{font-size:14px;font-weight:600;margin-bottom:4px}
+.result-snippet{font-size:12px;color:var(--text-dim);line-height:1.5}
+.result-snippet mark{background:var(--accent-glow);color:var(--accent);padding:1px 3px;border-radius:2px}
+.epstein-badge{
+display:inline-block;font-size:10px;font-weight:700;font-family:var(--font-mono);
+background:rgba(248,113,113,.12);color:var(--red);padding:2px 6px;border-radius:3px;
+}
+
+.pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding-bottom:20px}
+.pagination button{
+padding:8px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;
+background:var(--bg-card);border:1px solid var(--border);transition:all .15s;
+}
+.pagination button:hover:not(:disabled){background:var(--bg-elevated);border-color:var(--accent)}
+.pagination button:disabled{opacity:.3;cursor:default}
+.pagination span{font-size:12px;color:var(--text-muted);font-family:var(--font-mono)}
+
+.thread-overlay{
+position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;
+backdrop-filter:blur(4px);animation:fadeIn .15s ease;
+}
+.thread-overlay.open{display:flex;justify-content:center;padding:24px}
+.thread-panel{
+background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);
+width:100%;max-width:800px;overflow-y:auto;animation:slideUp .2s ease;
+}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.thread-header{
+padding:20px 24px;border-bottom:1px solid var(--border);position:sticky;top:0;
+background:var(--bg-surface);z-index:1;display:flex;align-items:flex-start;gap:12px;
+}
+.thread-header h2{font-size:16px;font-weight:700;flex:1;line-height:1.4}
+.thread-close{
+width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+background:var(--bg-card);border:1px solid var(--border);flex-shrink:0;transition:all .15s;
+}
+.thread-close:hover{background:var(--red-dim);border-color:var(--red)}
+.thread-messages{padding:16px 24px}
+.msg-card{
+background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius);
+padding:16px 20px;margin-bottom:12px;
+}
+.msg-card.from-epstein{border-left:3px solid var(--red)}
+.msg-meta{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.msg-recipients{font-size:11px;color:var(--text-muted);margin-bottom:10px}
+.msg-recipients span{color:var(--text-dim)}
+.msg-body{
+font-size:13px;line-height:1.6;color:var(--text-dim);overflow:hidden;
+}
+.msg-body iframe{width:100%;border:none;border-radius:var(--radius-sm);background:#fff;min-height:200px}
+.msg-body-text{white-space:pre-wrap;word-break:break-word}
+.attachment-badge{
+font-size:10px;font-family:var(--font-mono);background:var(--bg-elevated);
+padding:2px 6px;border-radius:3px;color:var(--amber);
+}
+
+.graph-container{position:relative;width:100%;height:calc(100vh - 48px)}
+.graph-controls{
+position:absolute;top:16px;left:16px;z-index:5;background:var(--bg-card);
+border:1px solid var(--border);border-radius:var(--radius);padding:16px;min-width:220px;
+}
+.graph-controls label{display:block;font-size:11px;color:var(--text-muted);margin-bottom:4px;font-family:var(--font-mono)}
+.graph-controls input[type=range]{width:100%;margin-bottom:12px;accent-color:var(--accent)}
+.graph-controls .val{font-size:12px;color:var(--accent);font-family:var(--font-mono)}
+.graph-tooltip{
+position:absolute;pointer-events:none;background:var(--bg-elevated);border:1px solid var(--border);
+border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;z-index:10;display:none;
+box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+.graph-tooltip .tt-name{font-weight:700;margin-bottom:2px}
+.graph-tooltip .tt-email{color:var(--text-muted);font-family:var(--font-mono);font-size:11px}
+.graph-tooltip .tt-count{color:var(--accent);font-family:var(--font-mono);margin-top:4px;font-size:11px}
+
+.entity-table{width:100%;border-collapse:collapse}
+.entity-table th{
+text-align:left;padding:10px 14px;font-size:11px;font-weight:600;color:var(--text-muted);
+text-transform:uppercase;letter-spacing:.05em;font-family:var(--font-mono);
+border-bottom:1px solid var(--border);cursor:pointer;user-select:none;
+}
+.entity-table th:hover{color:var(--accent)}
+.entity-table th .sort-arrow{font-size:10px;margin-left:4px}
+.entity-table td{padding:10px 14px;border-bottom:1px solid var(--border-subtle);font-size:13px}
+.entity-table tr:hover td{background:var(--bg-card)}
+.entity-table tr{cursor:pointer;transition:background .1s}
+
+.entity-detail{
+background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);
+padding:24px;margin-top:16px;animation:fadeIn .2s ease;
+}
+.entity-detail h3{font-size:16px;font-weight:700;margin-bottom:4px}
+.entity-detail .entity-email{font-size:12px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:16px}
+.conn-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px;margin-bottom:20px}
+.conn-card{
+background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);
+padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s;
+}
+.conn-card:hover{border-color:var(--accent);background:var(--bg-card-hover)}
+.conn-name{font-size:12px;font-weight:600}
+.conn-weight{margin-left:auto;font-size:11px;font-family:var(--font-mono);color:var(--accent)}
+
+.timeline-container{width:100%;height:400px;position:relative}
+.timeline-bar{fill:var(--accent-dim);transition:fill .15s}
+.timeline-bar:hover{fill:var(--accent)}
+.timeline-tooltip{
+position:absolute;pointer-events:none;background:var(--bg-elevated);border:1px solid var(--border);
+border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;display:none;z-index:5;
+box-shadow:0 4px 12px rgba(0,0,0,.3);
+}
+
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:28px}
+.stat-card{
+background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius);
+padding:20px;text-align:center;
+}
+.stat-value{font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--accent);margin-bottom:4px}
+.stat-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-mono)}
+
+.top-table{width:100%;border-collapse:collapse;margin-bottom:24px}
+.top-table th{
+text-align:left;padding:8px 12px;font-size:11px;font-weight:600;color:var(--text-muted);
+text-transform:uppercase;letter-spacing:.05em;font-family:var(--font-mono);border-bottom:1px solid var(--border);
+}
+.top-table td{padding:8px 12px;border-bottom:1px solid var(--border-subtle);font-size:13px}
+.top-table .rank{color:var(--text-muted);font-family:var(--font-mono);font-size:11px}
+.top-table .bar-cell{width:40%}
+.top-table .bar-bg{background:var(--bg-surface);border-radius:3px;height:6px;overflow:hidden}
+.top-table .bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s ease}
+
+.spinner{display:flex;align-items:center;justify-content:center;padding:40px}
+.spinner::after{
+content:'';width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);
+border-radius:50%;animation:spin .6s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.empty-state{text-align:center;padding:60px 20px;color:var(--text-muted)}
+.empty-state svg{width:48px;height:48px;margin-bottom:12px;opacity:.3}
+.empty-state p{font-size:14px}
+
+.section-title{font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text-dim)}
+.breadcrumb{font-size:12px;color:var(--text-muted);margin-bottom:16px}
+.breadcrumb a{color:var(--accent)}
+.breadcrumb span{margin:0 6px}
+.btn-link{color:var(--accent);font-size:12px;cursor:pointer;background:none;border:none;font-family:inherit}
+.btn-link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div id="app">
+<aside class="sidebar">
+<div class="sidebar-header">
+<h1>JMail Explorer</h1>
+<p>Epstein Email Archive</p>
+</div>
+<nav class="sidebar-nav">
+<div class="nav-item active" data-view="search" onclick="showView('search')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+Search
+<span class="kbd">/</span>
+</div>
+<div class="nav-item" data-view="network" onclick="showView('network')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v4m-5 4 3.5-3m3.5 3L10.5 12"/></svg>
+Network
+</div>
+<div class="nav-item" data-view="entities" onclick="showView('entities')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+Entities
+</div>
+<div class="nav-item" data-view="timeline" onclick="showView('timeline')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+Timeline
+</div>
+<div class="nav-item" data-view="stats" onclick="showView('stats')">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+Stats
+</div>
+</nav>
+<div class="sidebar-footer">
+<span class="kbd">⌘K</span> or <span class="kbd">/</span> to search
+</div>
+</aside>
+
+<main class="main">
+
+<div id="view-search" class="view active">
+<div class="search-box">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+<input type="text" id="search-input" placeholder="Search emails, people, subjects..." autofocus>
+</div>
+<div id="search-meta" class="search-meta"></div>
+<div id="search-results"></div>
+<div id="search-pagination" class="pagination"></div>
+</div>
+
+<div id="view-network" class="view">
+<div class="graph-container" id="graph-container">
+<div class="graph-controls">
+<label>Min Edge Weight: <span class="val" id="weight-val">10</span></label>
+<input type="range" id="weight-slider" min="1" max="100" value="10">
+<label>Max Nodes: <span class="val" id="nodes-val">100</span></label>
+<input type="range" id="nodes-slider" min="20" max="300" value="100">
+<button class="btn-link" onclick="loadGraph()" style="margin-top:4px">Reload Graph</button>
+</div>
+<div class="graph-tooltip" id="graph-tooltip"></div>
+<svg id="graph-svg" width="100%" height="100%"></svg>
+</div>
+</div>
+
+<div id="view-entities" class="view">
+<h1 class="page-title">Entity Explorer</h1>
+<div class="search-box">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+<input type="text" id="entity-search" placeholder="Filter by name or email...">
+</div>
+<div id="entity-list"></div>
+<div id="entity-pagination" class="pagination"></div>
+<div id="entity-detail"></div>
+</div>
+
+<div id="view-timeline" class="view">
+<h1 class="page-title">Email Timeline</h1>
+<p class="page-subtitle">Message volume by month across the archive</p>
+<div class="timeline-container" id="timeline-container">
+<div class="timeline-tooltip" id="timeline-tooltip"></div>
+<svg id="timeline-svg" width="100%" height="100%"></svg>
+</div>
+</div>
+
+<div id="view-stats" class="view">
+<h1 class="page-title">Archive Statistics</h1>
+<div id="stats-content"></div>
+</div>
+
+</main>
+</div>
+
+<div class="thread-overlay" id="thread-overlay" onclick="if(event.target===this)closeThread()">
+<div class="thread-panel" id="thread-panel"></div>
+</div>
+
+<script>
+const API = '';
+let searchTimer = null;
+let searchPage = 1;
+let entityPage = 1;
+let entitySort = 'message_count';
+let entityOrder = 'desc';
+let currentGraph = null;
+let simulation = null;
+
+const COLORS = ['#818cf8','#f472b6','#34d399','#fbbf24','#22d3ee','#a78bfa','#fb923c','#4ade80','#f87171','#38bdf8'];
+function avatarColor(s){let h=0;for(let i=0;i<(s||'').length;i++)h=s.charCodeAt(i)+((h<<5)-h);return COLORS[Math.abs(h)%COLORS.length]}
+function initials(name){if(!name)return'?';const p=name.split(/[\s@.]+/).filter(Boolean);return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():name.slice(0,2).toUpperCase()}
+function fmtDate(d){if(!d)return'—';try{const dt=new Date(d);return dt.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})}catch{return d}}
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+async function api(path){
+const r=await fetch(API+path);
+if(!r.ok)throw new Error(`${r.status}`);
+return r.json();
+}
+
+function showView(name){
+document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+document.getElementById('view-'+name).classList.add('active');
+document.querySelector(`.nav-item[data-view="${name}"]`).classList.add('active');
+if(name==='network')loadGraph();
+if(name==='entities'){entityPage=1;loadEntities()}
+if(name==='timeline')loadTimeline();
+if(name==='stats')loadStats();
+}
+
+// SEARCH
+const searchInput=document.getElementById('search-input');
+searchInput.addEventListener('input',()=>{
+clearTimeout(searchTimer);
+searchTimer=setTimeout(()=>{searchPage=1;doSearch()},300);
+});
+
+async function doSearch(){
+const q=searchInput.value.trim();
+const meta=document.getElementById('search-meta');
+const results=document.getElementById('search-results');
+const pag=document.getElementById('search-pagination');
+if(!q){meta.textContent='';results.innerHTML='';pag.innerHTML='';return}
+results.innerHTML='<div class="spinner"></div>';
+try{
+const data=await api(`/api/search?q=${encodeURIComponent(q)}&page=${searchPage}&limit=20`);
+meta.textContent=`${data.total.toLocaleString()} results · page ${data.page}`;
+if(!data.results.length){results.innerHTML='<div class="empty-state"><p>No results found</p></div>';pag.innerHTML='';return}
+results.innerHTML=data.results.map(r=>{
+const col=avatarColor(r.sender_email);
+const ini=initials(r.sender_name);
+return`<div class="result-card" onclick="openThread('${escHtml(r.doc_id)}')">
+<div class="result-header">
+<div class="result-avatar" style="background:${col}">${ini}</div>
+<span class="result-sender">${escHtml(r.sender_name||r.sender_email||'Unknown')}</span>
+<span class="result-date">${fmtDate(r.sent_at)}</span>
+</div>
+<div class="result-subject">${escHtml(r.subject||'(no subject)')}</div>
+<div class="result-snippet">${r.snippet||''}</div>
+</div>`}).join('');
+const totalPages=Math.ceil(data.total/20);
+pag.innerHTML=`
+<button onclick="searchPage--;doSearch()" ${searchPage<=1?'disabled':''}>← Prev</button>
+<span>${searchPage} / ${totalPages}</span>
+<button onclick="searchPage++;doSearch()" ${searchPage>=totalPages?'disabled':''}>Next →</button>`;
+}catch(e){results.innerHTML='<div class="empty-state"><p>Search error</p></div>'}
+}
+
+// THREAD
+async function openThread(docId){
+const overlay=document.getElementById('thread-overlay');
+const panel=document.getElementById('thread-panel');
+overlay.classList.add('open');
+panel.innerHTML='<div class="spinner" style="padding:60px"></div>';
+try{
+const data=await api(`/api/threads/${encodeURIComponent(docId)}`);
+const t=data.thread;
+const msgs=data.messages;
+let html=`<div class="thread-header">
+<div><h2>${escHtml(t.subject||'(no subject)')}</h2>
+<div style="font-size:12px;color:var(--text-muted);margin-top:4px;font-family:var(--font-mono)">
+${t.message_count} message${t.message_count!==1?'s':''} · ${fmtDate(t.latest_date)}
+${t.attachment_count?` · <span class="attachment-badge">📎 ${t.attachment_count}</span>`:''}
+</div></div>
+<button class="thread-close" onclick="closeThread()">✕</button>
+</div><div class="thread-messages">`;
+msgs.forEach(m=>{
+const col=avatarColor(m.sender_email);
+const ini=initials(m.sender_name);
+const to=m.recipients.filter(r=>r.type==='to').map(r=>escHtml(r.name||r.address)).join(', ');
+const cc=m.recipients.filter(r=>r.type==='cc').map(r=>escHtml(r.name||r.address)).join(', ');
+html+=`<div class="msg-card ${m.is_from_epstein?'from-epstein':''}">
+<div class="msg-meta">
+<div class="result-avatar" style="background:${col};width:28px;height:28px;font-size:10px">${ini}</div>
+<div>
+<div style="font-weight:600;font-size:13px">${escHtml(m.sender_name||'Unknown')}</div>
+<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">${escHtml(m.sender_email||'')}</div>
+</div>
+<span class="result-date">${fmtDate(m.sent_at)}</span>
+${m.is_from_epstein?'<span class="epstein-badge">EPSTEIN</span>':''}
+${m.attachment_count?`<span class="attachment-badge">📎 ${m.attachment_count}</span>`:''}
+</div>
+${to?`<div class="msg-recipients">To: <span>${to}</span></div>`:''}
+${cc?`<div class="msg-recipients">Cc: <span>${cc}</span></div>`:''}
+<div class="msg-body">${renderBody(m)}</div>
+</div>`;
+});
+html+='</div>';
+panel.innerHTML=html;
+panel.querySelectorAll('iframe').forEach(resizeIframe);
+}catch(e){panel.innerHTML='<div class="empty-state"><p>Failed to load thread</p></div>'}
+}
+
+function renderBody(m){
+if(m.content_html&&m.content_html.trim().length>20){
+const id='frame-'+Math.random().toString(36).slice(2);
+setTimeout(()=>{
+const f=document.getElementById(id);
+if(!f)return;
+const doc=f.contentDocument||f.contentWindow.document;
+doc.open();
+doc.write(`<style>body{font-family:'DM Sans',sans-serif;font-size:13px;color:#333;padding:8px;margin:0;word-break:break-word}a{color:#6366f1}img{max-width:100%;height:auto}</style>`+m.content_html);
+doc.close();
+setTimeout(()=>resizeIframe(f),100);
+},0);
+return`<iframe id="${id}" sandbox="allow-same-origin" style="min-height:100px"></iframe>`;
+}
+if(m.content_markdown)return`<div class="msg-body-text">${escHtml(m.content_markdown)}</div>`;
+return'<div class="msg-body-text" style="color:var(--text-muted)">(no content)</div>';
+}
+
+function resizeIframe(f){
+try{const h=f.contentDocument.body.scrollHeight;f.style.height=Math.min(Math.max(h+20,80),600)+'px'}catch{}
+}
+
+function closeThread(){document.getElementById('thread-overlay').classList.remove('open')}
+
+// NETWORK GRAPH
+async function loadGraph(){
+const container=document.getElementById('graph-container');
+const svg=d3.select('#graph-svg');
+svg.selectAll('*').remove();
+const minW=+document.getElementById('weight-slider').value;
+const maxN=+document.getElementById('nodes-slider').value;
+try{
+const data=await api(`/api/graph?min_weight=${minW}&limit=${maxN}`);
+if(!data.nodes.length){svg.append('text').attr('x','50%').attr('y','50%').attr('text-anchor','middle').attr('fill','#5c5e72').text('No data for these filters');return}
+renderGraph(data,svg,container);
+}catch(e){console.error(e)}
+}
+
+function renderGraph(data,svg,container){
+if(simulation)simulation.stop();
+const w=container.clientWidth,h=container.clientHeight;
+svg.attr('viewBox',`0 0 ${w} ${h}`);
+const tooltip=document.getElementById('graph-tooltip');
+const maxCount=d3.max(data.nodes,d=>d.count)||1;
+const maxWeight=d3.max(data.links,d=>d.weight)||1;
+const nodeScale=d3.scaleSqrt().domain([0,maxCount]).range([4,24]);
+const linkScale=d3.scaleLinear().domain([0,maxWeight]).range([.5,4]);
+
+const g=svg.append('g');
+svg.call(d3.zoom().scaleExtent([.1,8]).on('zoom',e=>g.attr('transform',e.transform)));
+
+const link=g.append('g').selectAll('line').data(data.links).join('line')
+.attr('stroke','#2a2d3e').attr('stroke-width',d=>linkScale(d.weight)).attr('stroke-opacity',.6);
+
+const node=g.append('g').selectAll('g').data(data.nodes).join('g').attr('cursor','pointer')
+.call(d3.drag().on('start',(e,d)=>{if(!e.active)simulation.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y})
+.on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y}).on('end',(e,d)=>{if(!e.active)simulation.alphaTarget(0);d.fx=null;d.fy=null}));
+
+node.append('circle').attr('r',d=>nodeScale(d.count))
+.attr('fill',d=>d.is_epstein?'#f87171':'#818cf8').attr('stroke',d=>d.is_epstein?'#dc2626':'#6366f1')
+.attr('stroke-width',1.5).attr('opacity',.85);
+
+node.append('text').text(d=>(d.name||d.email||'').slice(0,12))
+.attr('font-size',9).attr('fill','#8b8da0').attr('text-anchor','middle').attr('dy',d=>nodeScale(d.count)+12)
+.attr('font-family','DM Sans,sans-serif');
+
+node.on('mouseover',(e,d)=>{
+tooltip.style.display='block';
+tooltip.innerHTML=`<div class="tt-name">${escHtml(d.name||'Unknown')}</div><div class="tt-email">${escHtml(d.email)}</div><div class="tt-count">${d.count} messages${d.is_epstein?' · Epstein account':''}</div>`;
+}).on('mousemove',e=>{
+tooltip.style.left=(e.offsetX+14)+'px';tooltip.style.top=(e.offsetY-10)+'px';
+}).on('mouseout',()=>{tooltip.style.display='none'})
+.on('click',(e,d)=>{showView('entities');loadEntityDetail(d.email)});
+
+simulation=d3.forceSimulation(data.nodes)
+.force('link',d3.forceLink(data.links).id(d=>d.id).distance(80).strength(.3))
+.force('charge',d3.forceManyBody().strength(-120))
+.force('center',d3.forceCenter(w/2,h/2))
+.force('collision',d3.forceCollide().radius(d=>nodeScale(d.count)+4))
+.on('tick',()=>{
+link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+node.attr('transform',d=>`translate(${d.x},${d.y})`);
+});
+}
+
+document.getElementById('weight-slider').addEventListener('input',e=>{document.getElementById('weight-val').textContent=e.target.value});
+document.getElementById('nodes-slider').addEventListener('input',e=>{document.getElementById('nodes-val').textContent=e.target.value});
+
+// ENTITIES
+let entitySearchTimer=null;
+document.getElementById('entity-search').addEventListener('input',()=>{
+clearTimeout(entitySearchTimer);
+entitySearchTimer=setTimeout(()=>{entityPage=1;loadEntities()},300);
+});
+
+async function loadEntities(){
+const list=document.getElementById('entity-list');
+const pag=document.getElementById('entity-pagination');
+const q=document.getElementById('entity-search').value.trim();
+list.innerHTML='<div class="spinner"></div>';
+try{
+const data=await api(`/api/entities?page=${entityPage}&limit=50&sort=${entitySort}&order=${entityOrder}&search=${encodeURIComponent(q)}`);
+if(!data.entities.length){list.innerHTML='<div class="empty-state"><p>No entities found</p></div>';pag.innerHTML='';return}
+const arrow=entityOrder==='asc'?'↑':'↓';
+list.innerHTML=`<table class="entity-table"><thead><tr>
+<th onclick="sortEntities('name')">Name ${entitySort==='name'?`<span class="sort-arrow">${arrow}</span>`:''}</th>
+<th onclick="sortEntities('email')">Email ${entitySort==='email'?`<span class="sort-arrow">${arrow}</span>`:''}</th>
+<th onclick="sortEntities('message_count')">Messages ${entitySort==='message_count'?`<span class="sort-arrow">${arrow}</span>`:''}</th>
+<th>Type</th>
+</tr></thead><tbody>${data.entities.map(e=>`<tr onclick="loadEntityDetail('${escHtml(e.email)}')">
+<td>${escHtml(e.name||'—')}</td>
+<td style="font-family:var(--font-mono);font-size:12px;color:var(--text-dim)">${escHtml(e.email)}</td>
+<td style="font-family:var(--font-mono)">${e.message_count}</td>
+<td>${e.is_epstein?'<span class="epstein-badge">EPSTEIN</span>':''}</td>
+</tr>`).join('')}</tbody></table>`;
+const totalPages=Math.ceil(data.total/50);
+pag.innerHTML=`
+<button onclick="entityPage--;loadEntities()" ${entityPage<=1?'disabled':''}>← Prev</button>
+<span>${entityPage} / ${totalPages}</span>
+<button onclick="entityPage++;loadEntities()" ${entityPage>=totalPages?'disabled':''}>Next →</button>`;
+}catch(e){list.innerHTML='<div class="empty-state"><p>Failed to load entities</p></div>'}
+}
+
+function sortEntities(field){
+if(entitySort===field)entityOrder=entityOrder==='asc'?'desc':'asc';
+else{entitySort=field;entityOrder=field==='name'||field==='email'?'asc':'desc'}
+entityPage=1;loadEntities();
+}
+
+async function loadEntityDetail(email){
+const detail=document.getElementById('entity-detail');
+detail.innerHTML='<div class="spinner"></div>';
+detail.scrollIntoView({behavior:'smooth'});
+try{
+const data=await api(`/api/entities/${encodeURIComponent(email)}`);
+const e=data.entity;
+let html=`<div class="entity-detail">
+<div class="breadcrumb"><a href="#" onclick="event.preventDefault();document.getElementById('entity-detail').innerHTML=''">Entities</a><span>›</span>${escHtml(e.name||e.email)}</div>
+<h3>${escHtml(e.name||'Unknown')} ${e.is_epstein?'<span class="epstein-badge">EPSTEIN</span>':''}</h3>
+<div class="entity-email">${escHtml(e.email)} · ${e.message_count} messages</div>
+<button class="btn-link" onclick="viewEgoNetwork('${escHtml(e.email)}')">View ego network →</button>
+<div style="margin-top:20px"><div class="section-title">Top Connections</div>`;
+if(data.connections.length){
+html+='<div class="conn-list">'+data.connections.map(c=>{
+const col=avatarColor(c.email);
+return`<div class="conn-card" onclick="loadEntityDetail('${escHtml(c.email)}')">
+<div class="result-avatar" style="background:${col};width:28px;height:28px;font-size:10px">${initials(c.name)}</div>
+<div><div class="conn-name">${escHtml(c.name||c.email)}</div>
+<div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono)">${escHtml(c.email)}</div></div>
+<span class="conn-weight">${c.connection_weight}</span>
+</div>`}).join('')+'</div>';
+}else html+='<p style="color:var(--text-muted);font-size:13px">No connections found</p>';
+html+='</div><div style="margin-top:20px"><div class="section-title">Recent Messages</div>';
+if(data.recent_messages.length){
+html+=data.recent_messages.map(m=>`<div class="result-card" onclick="openThread('${escHtml(m.doc_id)}')" style="padding:12px 16px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<span style="font-weight:600;font-size:13px">${escHtml(m.subject||'(no subject)')}</span>
+<span class="result-date">${fmtDate(m.sent_at)}</span>
+</div>
+${m.preview?`<div style="font-size:12px;color:var(--text-muted);margin-top:4px">${escHtml((m.preview||'').slice(0,120))}</div>`:''}
+</div>`).join('');
+}else html+='<p style="color:var(--text-muted);font-size:13px">No messages found</p>';
+html+='</div></div>';
+detail.innerHTML=html;
+}catch(e){detail.innerHTML='<div class="empty-state"><p>Entity not found</p></div>'}
+}
+
+async function viewEgoNetwork(email){
+showView('network');
+const container=document.getElementById('graph-container');
+const svg=d3.select('#graph-svg');
+svg.selectAll('*').remove();
+try{
+const data=await api(`/api/graph/ego/${encodeURIComponent(email)}?depth=1`);
+if(!data.nodes.length)return;
+renderGraph(data,svg,container);
+}catch(e){console.error(e)}
+}
+
+// TIMELINE
+async function loadTimeline(){
+const container=document.getElementById('timeline-container');
+const svg=d3.select('#timeline-svg');
+svg.selectAll('*').remove();
+const tooltip=document.getElementById('timeline-tooltip');
+try{
+const data=await api('/api/timeline');
+const tl=data.timeline;
+if(!tl.length)return;
+const margin={top:20,right:20,bottom:60,left:50};
+const w=container.clientWidth-margin.left-margin.right;
+const h=380-margin.top-margin.bottom;
+const g=svg.append('g').attr('transform',`translate(${margin.left},${margin.top})`);
+const x=d3.scaleBand().domain(tl.map(d=>d.month)).range([0,w]).padding(.2);
+const y=d3.scaleLinear().domain([0,d3.max(tl,d=>d.message_count)*1.1]).range([h,0]);
+g.append('g').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x).tickValues(x.domain().filter((_,i)=>i%12===0)))
+.selectAll('text').attr('fill','#5c5e72').attr('font-size',10).attr('transform','rotate(-45)').attr('text-anchor','end');
+g.append('g').call(d3.axisLeft(y).ticks(6)).selectAll('text').attr('fill','#5c5e72').attr('font-size',10);
+g.selectAll('.domain,.tick line').attr('stroke','#2a2d3e');
+g.selectAll('.bar').data(tl).join('rect').attr('class','timeline-bar')
+.attr('x',d=>x(d.month)).attr('y',d=>y(d.message_count)).attr('width',x.bandwidth())
+.attr('height',d=>h-y(d.message_count)).attr('rx',2)
+.on('mouseover',(e,d)=>{
+tooltip.style.display='block';
+tooltip.innerHTML=`<strong>${d.month}</strong><br>${d.message_count} messages`;
+}).on('mousemove',e=>{
+tooltip.style.left=(e.offsetX+12)+'px';tooltip.style.top=(e.offsetY-40)+'px';
+}).on('mouseout',()=>{tooltip.style.display='none'})
+.on('click',(e,d)=>{
+showView('search');
+searchInput.value=d.month;searchPage=1;doSearch();
+});
+}catch(e){console.error(e)}
+}
+
+// STATS
+async function loadStats(){
+const el=document.getElementById('stats-content');
+el.innerHTML='<div class="spinner"></div>';
+try{
+const s=await api('/api/stats');
+let html=`<div class="stat-grid">
+<div class="stat-card"><div class="stat-value">${s.threads.toLocaleString()}</div><div class="stat-label">Threads</div></div>
+<div class="stat-card"><div class="stat-value">${s.messages.toLocaleString()}</div><div class="stat-label">Messages</div></div>
+<div class="stat-card"><div class="stat-value">${s.entities.toLocaleString()}</div><div class="stat-label">Entities</div></div>
+<div class="stat-card"><div class="stat-value">${s.edges.toLocaleString()}</div><div class="stat-label">Connections</div></div>
+<div class="stat-card"><div class="stat-value" style="font-size:16px">${fmtDate(s.min_date)}</div><div class="stat-label">Earliest</div></div>
+<div class="stat-card"><div class="stat-value" style="font-size:16px">${fmtDate(s.max_date)}</div><div class="stat-label">Latest</div></div>
+</div>`;
+const maxSend=s.top_senders[0]?.cnt||1;
+html+=`<div class="section-title">Top 10 Senders</div>
+<table class="top-table"><thead><tr><th>#</th><th>Name</th><th>Email</th><th>Count</th><th class="bar-cell"></th></tr></thead><tbody>
+${s.top_senders.map((r,i)=>`<tr>
+<td class="rank">${i+1}</td><td>${escHtml(r.sender_name||'—')}</td>
+<td style="font-family:var(--font-mono);font-size:12px;color:var(--text-dim)">${escHtml(r.sender_email)}</td>
+<td style="font-family:var(--font-mono)">${r.cnt}</td>
+<td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${(r.cnt/maxSend*100).toFixed(1)}%"></div></div></td>
+</tr>`).join('')}</tbody></table>`;
+const maxDom=s.top_domains[0]?.cnt||1;
+html+=`<div class="section-title" style="margin-top:28px">Top 10 Domains</div>
+<table class="top-table"><thead><tr><th>#</th><th>Domain</th><th>Count</th><th class="bar-cell"></th></tr></thead><tbody>
+${s.top_domains.map((r,i)=>`<tr>
+<td class="rank">${i+1}</td>
+<td style="font-family:var(--font-mono)">${escHtml(r.domain)}</td>
+<td style="font-family:var(--font-mono)">${r.cnt}</td>
+<td class="bar-cell"><div class="bar-bg"><div class="bar-fill" style="width:${(r.cnt/maxDom*100).toFixed(1)}%"></div></div></td>
+</tr>`).join('')}</tbody></table>`;
+el.innerHTML=html;
+}catch(e){el.innerHTML='<div class="empty-state"><p>Failed to load stats</p></div>'}
+}
+
+// KEYBOARD SHORTCUTS
+document.addEventListener('keydown',e=>{
+if((e.metaKey||e.ctrlKey)&&e.key==='k'){e.preventDefault();showView('search');searchInput.focus()}
+if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();showView('search');searchInput.focus()}
+if(e.key==='Escape')closeThread();
+});
+
+window.addEventListener('resize',()=>{
+if(document.getElementById('view-network').classList.contains('active'))loadGraph();
+if(document.getElementById('view-timeline').classList.contains('active'))loadTimeline();
+});
+
+showView('search');
+</script>
+</body>
+</html>
